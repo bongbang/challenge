@@ -15,8 +15,8 @@ except AssertionError:
     sys.exit()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input_file', type=str, default='venmo_input/venmo-trans.txt')
-parser.add_argument('output_file', type=str, default='venmo_output/output.txt')
+parser.add_argument('input_file', type=str)
+parser.add_argument('output_file', type=str)
 
 args = parser.parse_args()
 
@@ -25,7 +25,7 @@ class Transaction_graph:
         self.log = defaultdict(set)
         self.time_log = deque()
         self.nodes_tally = defaultdict(lambda: 0)
-        self.degree_bins = [0]*16 # pre-allocate TODO more?
+        self.degree_bins = [0]*32 # pre-allocate
         self.median_degree = 0
 
     def _make_edge(self,actor,target):
@@ -56,7 +56,10 @@ class Transaction_graph:
             else:
                 degree_old = self.nodes_tally[node]
                 self.nodes_tally[node] += bump
-                self.degree_bins[degree_old + bump] += 1
+                try:
+                    self.degree_bins[degree_old + bump] += 1
+                except IndexError:
+                    self.degree_bins.append(1)
                 if degree_old:
                     self.degree_bins[degree_old] -= 1
 
@@ -108,17 +111,16 @@ class Transaction_graph:
             self._add_first(actor,target,timestamp)
         else:
             if time_diff >= timedelta(seconds=60):
-                self.__init__ # expunge TODO test
+                self.__init__() # reset: back to square 1
                 self._add_first(actor,target,timestamp)
 
             elif time_diff > timedelta():
                 edge = self._make_edge(actor,target)
-                # import pdb; pdb.set_trace()
                 self._add_to_logs(edge,timestamp)
                 self._evict_edges()
                 found = self._find_duplicate(edge,timestamp)
                 if not found or found == 2:
-                    self._update_degrees(edge) # just update since edge already added
+                    self._update_degrees(edge) # just update tally since edge already added
                     self._update_median()
                 # else: pass # found and killed duplicate, so no change
 
@@ -150,22 +152,22 @@ class Transaction_graph:
 
 ## MAIN
 v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
-with open(args.input_file) as f:
-    for line in f:
-        txn = json.loads(line)  # transaction
-        try:
-            timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ') # TODO test error
-        except:
-            continue
-        else:
-            actor = txn['actor']
-            target = txn['target']
+with open(args.input_file, 'r') as file_in:
+    with open(args.output_file, 'w') as file_out:
+        for line in file_in:
+            txn = json.loads(line)  # transaction
             try:
-                if not actor or not target or actor == target:
-                    raise NameError('Invalid actor or target.')
+                timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ') # TODO test error
             except:
                 continue
             else:
-                v.add_transaction(actor,target,timestamp)
-                # import pdb; pdb.set_trace()
-                print('{:.2f}'.format(v.median_degree))
+                actor = txn['actor']
+                target = txn['target']
+                try:
+                    if not actor or not target or actor == target:
+                        raise NameError('Invalid actor or target.')
+                except:
+                    continue
+                else:
+                    v.add_transaction(actor,target,timestamp)
+                    file_out.write('{:.2f}\n'.format(v.median_degree))
