@@ -57,9 +57,9 @@ class Transaction_graph:
                 if edge in edges:
                     if time < timestamp:
                         edges.remove(edge) # (below) action for cases t_diff <= 0 || > 0
-                        return 1 # found old and killed; set new edge, no update || DON'T update tally X
+                        return 1 # found old and killed; set new edge, no update X || DON'T update tally X
                     else:
-                        return 2 # found newer or equal; DON'T set new edge, no update X || not possible
+                        return 2 # found newer or equal; DON'T set new edge, no update X || update (found just added) O
             else:
                 return False # not found: set new edge, update || update tally O
         else:
@@ -68,6 +68,7 @@ class Transaction_graph:
     def _update_median(self):
         position = (len(self.nodes_tally) + 1) * 0.5
         cum_count = 0
+        # import pdb; pdb.set_trace()
         for degree, count in enumerate(self.degree_bins):
             cum_count += count
             delta = cum_count - position
@@ -94,9 +95,11 @@ class Transaction_graph:
 
             elif time_diff > timedelta():
                 edge = self._make_edge(actor,target)
+                # import pdb; pdb.set_trace()
                 self._add_to_logs(edge,timestamp)
                 self._evict_edges()
-                if not self._find_duplicate(edge,timestamp):
+                found = self._find_duplicate(edge,timestamp)
+                if not found or found == 2:
                     self._update_degrees(edge) # just update since edge already added
                     self._update_median()
                 # else: pass # found and killed duplicate, so no change
@@ -113,6 +116,19 @@ class Transaction_graph:
                 # else: pass # found newer, so no change.
 
             # else: transaction outside window. Do nothing.
+
+    # print functions for easier debugging
+    def stat(self):
+        for node, degree in self.nodes_tally.items():
+            print('{0:20} : {1:3d}'.format(node, degree))
+        print()
+        for degree, count in enumerate(self.degree_bins):
+            if count:
+                print('{0:2d} : {1:3d}'.format(degree, count))
+
+    def plog(self):
+        for time in self.time_log:
+            print('{0:20} : {}'.format(time, self.log[time]))
 
 ## MAIN
 v = Transaction_graph()
@@ -133,4 +149,5 @@ with open('../venmo_input/first_test.txt') as f:
                 continue
             else:
                 v.add_transaction(actor,target,timestamp)
+                # import pdb; pdb.set_trace()
                 print(v.median_degree)
