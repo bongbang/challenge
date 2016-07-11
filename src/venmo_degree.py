@@ -1,5 +1,3 @@
-# from __future__ import division, print_function
-# no need since using Python 3
 import json
 from datetime import datetime, timedelta
 from collections import deque, defaultdict
@@ -120,18 +118,18 @@ class Transaction_graph:
     # print functions for easier debugging
     def stat(self):
         for node, degree in self.nodes_tally.items():
-            print('{0:20} : {1:3d}'.format(node, degree))
+            print('{:20} : {:3d}'.format(node, degree))
         print()
         for degree, count in enumerate(self.degree_bins):
             if count:
-                print('{0:2d} : {1:3d}'.format(degree, count))
+                print('{:2d} : {:3d}'.format(degree, count))
 
     def plog(self):
         for time in self.time_log:
-            print('{0:20} : {}'.format(time, self.log[time]))
+            print('{} : {}'.format(time, self.log[time]))
 
 ## MAIN
-v = Transaction_graph()
+v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
 with open('../venmo_input/first_test.txt') as f:
     for line in f:
         txn = json.loads(line)  # transaction
@@ -150,4 +148,4 @@ with open('../venmo_input/first_test.txt') as f:
             else:
                 v.add_transaction(actor,target,timestamp)
                 # import pdb; pdb.set_trace()
-                print(v.median_degree)
+                print('{:.2f}'.format(v.median_degree))
