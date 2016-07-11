@@ -111,7 +111,7 @@ class Transaction_graph:
             self._add_first(actor,target,timestamp)
         else:
             if time_diff >= timedelta(seconds=60):
-                self.__init__() # expunge TODO test
+                self.__init__() # reset: back to square 1
                 self._add_first(actor,target,timestamp)
 
             elif time_diff > timedelta():
@@ -120,7 +120,7 @@ class Transaction_graph:
                 self._evict_edges()
                 found = self._find_duplicate(edge,timestamp)
                 if not found or found == 2:
-                    self._update_degrees(edge) # just update since edge already added
+                    self._update_degrees(edge) # just update tally since edge already added
                     self._update_median()
                 # else: pass # found and killed duplicate, so no change
 
