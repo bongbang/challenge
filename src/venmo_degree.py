@@ -150,22 +150,23 @@ class Transaction_graph:
 
 ## MAIN
 v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
-with open(args.input_file) as f:
-    for line in f:
-        txn = json.loads(line)  # transaction
-        try:
-            timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ') # TODO test error
-        except:
-            continue
-        else:
-            actor = txn['actor']
-            target = txn['target']
+with open(args.input_file, 'r') as file_in:
+    with open(args.output_file, 'w') as file_out:
+        for line in file_in:
+            txn = json.loads(line)  # transaction
             try:
-                if not actor or not target or actor == target:
-                    raise NameError('Invalid actor or target.')
+                timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ') # TODO test error
             except:
                 continue
             else:
-                v.add_transaction(actor,target,timestamp)
-                # import pdb; pdb.set_trace()
-                print('{:.2f}'.format(v.median_degree))
+                actor = txn['actor']
+                target = txn['target']
+                try:
+                    if not actor or not target or actor == target:
+                        raise NameError('Invalid actor or target.')
+                except:
+                    continue
+                else:
+                    v.add_transaction(actor,target,timestamp)
+                    # import pdb; pdb.set_trace()
+                    file_out.write('{:.2f}\n'.format(v.median_degree))
