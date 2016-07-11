@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import print_function
 import json
 from datetime import datetime, timedelta
@@ -14,8 +15,8 @@ except AssertionError:
     sys.exit()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input_file', type=str, default='venmo_input/venmo-trans.txt')
-parser.add_argument('output_file', type=str, default='venmo_output/output.txt')
+parser.add_argument('input_file', type=str)
+parser.add_argument('output_file', type=str)
 
 args = parser.parse_args()
 
