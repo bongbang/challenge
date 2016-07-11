@@ -25,7 +25,7 @@ class Transaction_graph:
         self.log = defaultdict(set)
         self.time_log = deque()
         self.nodes_tally = defaultdict(lambda: 0)
-        self.degree_bins = [0]*16 # pre-allocate TODO more?
+        self.degree_bins = [0]*32 # pre-allocate
         self.median_degree = 0
 
     def _make_edge(self,actor,target):
