@@ -56,7 +56,10 @@ class Transaction_graph:
             else:
                 degree_old = self.nodes_tally[node]
                 self.nodes_tally[node] += bump
-                self.degree_bins[degree_old + bump] += 1
+                try:
+                    self.degree_bins[degree_old + bump] += 1
+                except IndexError:
+                    self.degree_bins.append(1)
                 if degree_old:
                     self.degree_bins[degree_old] -= 1
 
