@@ -1,2 +1,6 @@
 data-gen
 venv
+_myfiles
+*.swo
+*.swp
+*.pyc

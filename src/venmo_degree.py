@@ -1,7 +1,23 @@
+from __future__ import print_function
 import json
 from datetime import datetime, timedelta
 from collections import deque, defaultdict
 from bisect import insort
+import argparse
+import sys
+
+try:
+    assert sys.version_info >= (3,5)
+except AssertionError:
+    print('*** Need Python version 3.5 or above!\n ***')
+    print('Your version is: {}'.format(sys.version))
+    sys.exit()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('input_file', type=str, default='venmo_input/venmo-trans.txt')
+parser.add_argument('output_file', type=str, default='venmo_output/output.txt')
+
+args = parser.parse_args()
 
 class Transaction_graph:
     def __init__(self):
@@ -16,7 +32,10 @@ class Transaction_graph:
 
     def _add_to_logs(self,edge,timestamp):
         if timestamp not in self.log:
-            insort(self.time_log, timestamp)
+            try:
+                insort(self.time_log, timestamp)
+            except:
+                raise EnvironmentError('Need Python version 3.5 or above.')
         self.log[timestamp] |= {edge}
 
     def _add_first(self,actor,target,timestamp):
@@ -130,7 +149,7 @@ class Transaction_graph:
 
 ## MAIN
 v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
-with open('../venmo_input/first_test.txt') as f:
+with open(args.input_file) as f:
     for line in f:
         txn = json.loads(line)  # transaction
         try:
