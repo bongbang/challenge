@@ -111,12 +111,11 @@ class Transaction_graph:
             self._add_first(actor,target,timestamp)
         else:
             if time_diff >= timedelta(seconds=60):
-                self.__init__ # expunge TODO test
+                self.__init__() # expunge TODO test
                 self._add_first(actor,target,timestamp)
 
             elif time_diff > timedelta():
                 edge = self._make_edge(actor,target)
-                # import pdb; pdb.set_trace()
                 self._add_to_logs(edge,timestamp)
                 self._evict_edges()
                 found = self._find_duplicate(edge,timestamp)
@@ -171,5 +170,4 @@ with open(args.input_file, 'r') as file_in:
                     continue
                 else:
                     v.add_transaction(actor,target,timestamp)
-                    # import pdb; pdb.set_trace()
                     file_out.write('{:.2f}\n'.format(v.median_degree))
