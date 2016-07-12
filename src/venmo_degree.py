@@ -77,12 +77,12 @@ class Transaction_graph:
             for time, edges in self.log.items():
                 if edge in edges:
                     if time < timestamp:
-                        edges.remove(edge) # (below) action for cases t_diff <= 0 || > 0
-                        return 1 # found old and killed; set new edge, no update X || DON'T update tally X
+                        edges.remove(edge) # (below) action for cases t_diff <= 0 || t_diff > 0
+                        return 1 # found older & removed: set new edge, no update tally || no update tally
                     else:
-                        return 2 # found newer or equal; DON'T set new edge, no update X || update (found just added) O
+                        return 2 # found newer/equal: no new edge, no update tally || update (found just added)
             else:
-                return False # not found: set new edge, update || update tally O
+                return False # not found: set new edge, update || update tally
         else:
             return False # not found: ditto
 
@@ -169,4 +169,5 @@ with open(args.input_file, 'r') as file_in:
                     continue
                 else:
                     v.add_transaction(actor,target,timestamp)
+                    assert 0 not in v.nodes_tally.values()
                     file_out.write('{:.2f}\n'.format(v.median_degree))
