@@ -31,19 +31,19 @@ class Transaction_graph:
     def _make_edge(self,actor,target):
         return tuple(sorted([actor,target]))
 
-    def _add_to_logs(self,edge,timestamp):
+    def _add_edge(self,edge,timestamp):
         if timestamp not in self.log:
             try:
                 insort(self.time_log, timestamp)
             except AttributeError:
                 raise EnvironmentError('Need Python version 3.5 or above.')
-        self.log[timestamp] |= {edge}
+        self.log[timestamp].add(edge)
 
-    def _add_first(self,actor,target,timestamp):
+    def _process_first_transaction(self,actor,target,timestamp):
         edge = self._make_edge(actor,target)
-        self._add_to_logs(edge,timestamp)
+        self._add_edge(edge,timestamp)
         for node in edge:
-            self.nodes_tally[node] += 1
+            self.nodes_tally[node] = 1
         self.degree_bins[1] = 2
         self.median_degree = 1
 
@@ -107,15 +107,15 @@ class Transaction_graph:
         try:
             time_diff = timestamp - self.time_log[-1]
         except IndexError: # first time only
-            self._add_first(actor,target,timestamp)
+            self._process_first_transaction(actor,target,timestamp)
         else:
             if time_diff >= timedelta(seconds=60):
                 self.__init__() # reset: back to square 1
-                self._add_first(actor,target,timestamp)
+                self._process_first_transaction(actor,target,timestamp)
 
             elif time_diff > timedelta():
                 edge = self._make_edge(actor,target)
-                self._add_to_logs(edge,timestamp)
+                self._add_edge(edge,timestamp)
                 self._evict_edges()
                 found = self._find_duplicate(edge,timestamp)
                 if not found or found == 2:
@@ -123,18 +123,18 @@ class Transaction_graph:
                     self._update_median()
                 # else: pass # found and killed duplicate, so no change
 
-            elif time_diff > -timedelta(seconds = 60):
+            elif time_diff > -timedelta(seconds=60):
                 edge = self._make_edge(actor,target)
                 found = self._find_duplicate(edge,timestamp)
                 if not found:
-                    self._add_to_logs(edge,timestamp)
+                    self._add_edge(edge,timestamp)
                     self._update_degrees(edge)
                     self._update_median()
                 elif found == 1:
-                    self._add_to_logs(edge,timestamp)
+                    self._add_edge(edge,timestamp)
                 # else: pass # found newer, so no change.
 
-            # else: transaction outside window. Do nothing.
+            # else: pass # transaction outside window. Do nothing.
 
     # print functions for easier debugging
     def stat(self):
