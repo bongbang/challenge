@@ -10,8 +10,8 @@ import sys
 try:
     assert sys.version_info >= (3,5)
 except AssertionError:
-    print('*** Need Python version 3.5 or above!\n ***')
-    print('Your version is: {}'.format(sys.version))
+    print('\n*** Need Python version 3.5 or above! ***\n')
+    print('Your version is: {}\n'.format(sys.version))
     sys.exit()
 
 parser = argparse.ArgumentParser()
@@ -35,7 +35,7 @@ class Transaction_graph:
         if timestamp not in self.log:
             try:
                 insort(self.time_log, timestamp)
-            except:
+            except AttributeError:
                 raise EnvironmentError('Need Python version 3.5 or above.')
         self.log[timestamp] |= {edge}
 
@@ -89,7 +89,6 @@ class Transaction_graph:
     def _update_median(self):
         position = (len(self.nodes_tally) + 1) * 0.5
         cum_count = 0
-        # import pdb; pdb.set_trace()
         for degree, count in enumerate(self.degree_bins):
             cum_count += count
             delta = cum_count - position
@@ -157,8 +156,8 @@ with open(args.input_file, 'r') as file_in:
         for line in file_in:
             txn = json.loads(line)  # transaction
             try:
-                timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ') # TODO test error
-            except:
+                timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ')
+            except ValueError:
                 continue
             else:
                 actor = txn['actor']
@@ -166,7 +165,7 @@ with open(args.input_file, 'r') as file_in:
                 try:
                     if not actor or not target or actor == target:
                         raise NameError('Invalid actor or target.')
-                except:
+                except NameError:
                     continue
                 else:
                     v.add_transaction(actor,target,timestamp)
