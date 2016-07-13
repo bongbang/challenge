@@ -10,6 +10,6 @@ This program (`src/venmo_degree.py`) calculates the rolling median degree of nod
 
 ## Design
 
-I aim for the sweet spot between performance and memory-efficiency. Without rigorous benchmarking, I estimate that every step of program is carried out in roughly constant time (O(1)), with a modest memory requirement. The largely repetitive degrees are efficiently stored as a frequency table (implemented with a humble list), which yields automatic sorting. Memory footprint is further reduced by storing edges as sorted `tuples` instead of `frozensets`.
+I aim for the sweet spot between performance and memory-efficiency. Without rigorous benchmarking, I estimate that every step of the program is carried out in roughly constant time (*O(1)*), with a modest memory requirement. The largely repetitive degrees are efficiently stored in a frequency table (implemented as a humble list), which yields automatic sorting. Memory footprint is further reduced by storing edges as sorted `tuples` instead of `frozensets`.
 
 Only a transaction with a valid payor, payee, and timestamp is processed. The payor and the payee cannot be the same person in a transaction.
