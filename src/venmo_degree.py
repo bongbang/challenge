@@ -14,18 +14,12 @@ except AssertionError:
     print('Your version is: {}\n'.format(sys.version))
     sys.exit()
 
-parser = argparse.ArgumentParser()
-parser.add_argument('input_file', type=str)
-parser.add_argument('output_file', type=str)
-
-args = parser.parse_args()
-
 class Transaction_graph:
     def __init__(self):
-        self.log = defaultdict(set)
-        self.time_log = deque()
-        self.nodes_tally = defaultdict(lambda: 0)
-        self.degree_bins = [0]*32 # pre-allocate
+        self.log = defaultdict(set) # time-transactions mapping
+        self.time_log = deque() # sorted sequence of timepoints
+        self.nodes_tally = defaultdict(lambda: 0) # degrees of nodes
+        self.degree_bins = [0]*32 # counts of degrees, pre-allocated
         self.median_degree = 0
 
     def _make_edge(self,actor,target):
@@ -47,7 +41,7 @@ class Transaction_graph:
         self.degree_bins[1] = 2
         self.median_degree = 1
 
-    def _update_degrees(self,edge,up=True):
+    def _update_tallies(self,edge,up=True):
         bump = 1 if up else -1
         for node in edge:
             if not up and self.nodes_tally[node] == 1:
@@ -70,23 +64,24 @@ class Transaction_graph:
             edges_evicted = self.log.pop(time_evicted)
             # import pdb; pdb.set_trace()
             for edge in edges_evicted:
-                self._update_degrees(edge,up=False)
+                self._update_tallies(edge,up=False)
 
     def _find_duplicate(self,edge,timestamp):
         if all(node in self.nodes_tally for node in edge):
-            for time, edges in self.log.items():
-                if edge in edges:
+            for time in self.time_log:
+                # import pdb; pdb.set_trace()
+                if edge in self.log[time]:
                     if time < timestamp:
-                        edges.remove(edge) # (below) action for cases t_diff <= 0 || t_diff > 0
-                        return 1 # found older & removed: set new edge, no update tally || no update tally
+                        self.log[time].remove(edge) # (below) action for cases t_diff <= 0 || t_diff > 0
+                        return 1 # found older & removed: add new edge, no update tallies no update
                     else:
-                        return 2 # found newer/equal: no new edge, no update tally || update (found just added)
+                        return 2 # found newer/equal: no new edge, no update tallies || update (found just added)
             else:
-                return False # not found: set new edge, update || update tally
+                return False # not found: add new edge, update tallies || update
         else:
             return False # not found: ditto
 
-    def _update_median(self):
+    def _recompute_median(self):
         position = (len(self.nodes_tally) + 1) * 0.5
         cum_count = 0
         for degree, count in enumerate(self.degree_bins):
@@ -103,7 +98,7 @@ class Transaction_graph:
                 self.median_degree = degree + (i+1)*0.5
                 break
 
-    def add_transaction(self,actor,target,timestamp):
+    def process_transaction(self,actor,target,timestamp):
         try:
             time_diff = timestamp - self.time_log[-1]
         except IndexError: # first time only
@@ -119,20 +114,21 @@ class Transaction_graph:
                 self._evict_edges()
                 found = self._find_duplicate(edge,timestamp)
                 if not found or found == 2:
-                    self._update_degrees(edge) # just update tally since edge already added
-                    self._update_median()
-                # else: pass # found and killed duplicate, so no change
+                    # import pdb; pdb.set_trace()
+                    self._update_tallies(edge) # just update tallies since edge already added
+                    self._recompute_median()
+                # else: pass # found == 1: found and killed duplicate, so no change
 
             elif time_diff > -timedelta(seconds=60):
                 edge = self._make_edge(actor,target)
                 found = self._find_duplicate(edge,timestamp)
                 if not found:
                     self._add_edge(edge,timestamp)
-                    self._update_degrees(edge)
-                    self._update_median()
+                    self._update_tallies(edge)
+                    self._recompute_median()
                 elif found == 1:
                     self._add_edge(edge,timestamp)
-                # else: pass # found newer, so no change.
+                # else: pass # found == 2: found newer, so no change.
 
             # else: pass # transaction outside window. Do nothing.
 
@@ -150,24 +146,30 @@ class Transaction_graph:
             print('{} : {}'.format(time, self.log[time]))
 
 ## MAIN
-v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
-with open(args.input_file, 'r') as file_in:
-    with open(args.output_file, 'w') as file_out:
-        for line in file_in:
-            txn = json.loads(line)  # transaction
-            try:
-                timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ')
-            except ValueError:
-                continue
-            else:
-                actor = txn['actor']
-                target = txn['target']
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', type=str)
+    parser.add_argument('output_file', type=str)
+
+    args = parser.parse_args()
+    v = Transaction_graph() # v for Venmo, but abbreviated for quick debugging
+    with open(args.input_file, 'r') as file_in:
+        with open(args.output_file, 'w') as file_out:
+            for line in file_in:
+                txn = json.loads(line)  # transaction
                 try:
-                    if not actor or not target or actor == target:
-                        raise NameError('Invalid actor or target.')
-                except NameError:
+                    timestamp = datetime.strptime(txn['created_time'], '%Y-%m-%dT%H:%M:%SZ')
+                except ValueError:
                     continue
                 else:
-                    v.add_transaction(actor,target,timestamp)
-                    assert 0 not in v.nodes_tally.values()
-                    file_out.write('{:.2f}\n'.format(v.median_degree))
+                    actor = txn['actor']
+                    target = txn['target']
+                    try:
+                        if not actor or not target or actor == target:
+                            raise NameError('Invalid actor or target.')
+                    except NameError:
+                        continue
+                    else:
+                        v.process_transaction(actor,target,timestamp)
+                        assert 0 not in v.nodes_tally.values()
+                        file_out.write('{:.2f}\n'.format(v.median_degree))
